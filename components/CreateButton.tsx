@@ -14,7 +14,7 @@ import {
     withTiming,
   } from 'react-native-reanimated';
 import {OnboardingData} from '../data/data';
-import { useRouter } from 'expo-router';
+import { Link, router } from 'expo-router';
 import * as Haptics from 'expo-haptics'
 
   type Props = {
@@ -26,8 +26,6 @@ import * as Haptics from 'expo-haptics'
   
   const CustomButton = ({flatListRef, flatListIndex, dataLength, x}: Props) => {
     const {width: SCREEN_WIDTH} = useWindowDimensions();
-    const navigation = useRouter();
-  
     const buttonAnimationStyle = useAnimatedStyle(() => {
       return {
         width:
@@ -88,7 +86,7 @@ import * as Haptics from 'expo-haptics'
           if (flatListIndex.value < dataLength - 1) {
             flatListRef.current?.scrollToIndex({index: flatListIndex.value + 1});
           } else {
-            navigation.push('/(auth)/login');
+            router.push("/login")
           }
         }}>
         <Animated.View

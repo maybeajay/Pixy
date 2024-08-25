@@ -25,7 +25,7 @@ const OnBoarding = () => {
   }
 
   return (
-    <View>
+    <View style={styles.container}>
       <Animated.FlatList
         data={data}
         renderItem={({ item, index }) => <RenderItem item={item} index={index} x={x} />}
@@ -64,6 +64,11 @@ const styles = StyleSheet.create({
     right: 0,
     marginHorizontal: 30,
     paddingVertical: 30
+  },
+  container:{
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center"
   }
 })
 
