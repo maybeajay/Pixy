@@ -11,7 +11,7 @@ export interface OnboardingData {
 const data: OnboardingData[] = [
   {
     id: 1,
-    animation: require('../assets/animations/Lottie1.json'),
+    animation: require('../assets/animations/Lottie4.json'),
     text: 'Lorem Ipsum dolor sit amet',
     textColor: '#005b4f',
     backgroundColor: '#ffa3ce',

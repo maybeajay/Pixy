@@ -37,10 +37,7 @@
     },
     "plugins": [
       [
-        "expo-router",
-        {
-          "root": "./app/welcome"
-        }
+        "expo-router"
       ],
       [
         "react-native-vision-camera",
@@ -53,6 +50,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "4c371d50-0211-4532-8815-6377105f3aaf"
+      }
     }
   }
 }
