@@ -9,11 +9,13 @@ import {
 } from "react-native-vision-camera";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Feather from '@expo/vector-icons/Feather';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 type Props = {};
 
 const index = (props: Props) => {
   const [currentCamera, setcurrentCamera] = useState<CameraPosition>("back");
   const device = useCameraDevice(currentCamera);
+  const [toggleFlash, settoggleFlash] = useState<boolean>(false);
   const { hasPermission, requestPermission } = useCameraPermission();
   if (!hasPermission) requestPermission();
   const camera = useRef<Camera>(null)
@@ -31,7 +33,7 @@ const index = (props: Props) => {
     try {
       const data = await camera.current.takePhoto({
         enableAutoRedEyeReduction: true,
-        flash: "on"
+        flash: toggleFlash ? "on" : "off"
       });
       console.log(data);
     } catch (error) {
@@ -51,15 +53,26 @@ const index = (props: Props) => {
        />
        {/* switch camera Button */}
       <MaterialCommunityIcons 
-       name="camera-front" size={24} color="white"
+       name="camera-front" size={35} color="white"
        onPress={handleSwitchCamera} 
        style={styles.siwthcBtn}
        />
+       {/* Flash toggle button */}
+    {toggleFlash ? <MaterialIcons name={"flash-off"} 
+       size={35} color="white" 
+       onPress={()=>settoggleFlash(!toggleFlash)}
+       style={[styles.siwthcBtn, {top: 100}]}
+       /> :
+      <MaterialIcons name={"flash-on"} 
+       size={35} color="white" 
+       onPress={()=>settoggleFlash(!toggleFlash)}
+       style={[styles.siwthcBtn, {top: 100}]}
+       />}
        {/* Shutter Button */}
       <Feather name="circle"
        size={70} color="white" 
        style={styles.shutterBtn}
-       onPress={takePhoto}
+       onPss={takePhoto}
        />
     </View>
   );
