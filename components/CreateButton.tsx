@@ -16,6 +16,7 @@ import {
 import {OnboardingData} from '../data/data';
 import { Link, router } from 'expo-router';
 import * as Haptics from 'expo-haptics'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
   type Props = {
     dataLength: number;
@@ -86,7 +87,8 @@ import * as Haptics from 'expo-haptics'
           if (flatListIndex.value < dataLength - 1) {
             flatListRef.current?.scrollToIndex({index: flatListIndex.value + 1});
           } else {
-            router.push("/login")
+            router.push("/FirstScren");
+            AsyncStorage.setItem("firstLogin", "false");
           }
         }}>
         <Animated.View
