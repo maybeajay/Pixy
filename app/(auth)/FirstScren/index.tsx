@@ -10,32 +10,53 @@ import {
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-type Props = {};
-
-const index = (props: Props) => {
+import * as Haptics from 'expo-haptics'
+import * as MediaLibrary from 'expo-media-library';
+import { router } from "expo-router";
+const index = () => {
   const [currentCamera, setcurrentCamera] = useState<CameraPosition>("back");
   const device = useCameraDevice(currentCamera);
   const [toggleFlash, settoggleFlash] = useState<boolean>(false);
   const { hasPermission, requestPermission } = useCameraPermission();
+  const [permissionResponse, setPermissionResponse] = MediaLibrary.usePermissions();
   if (!hasPermission) requestPermission();
+  const [albums, setAlbums] = useState(null);
   const camera = useRef<Camera>(null)
-  // const isFocused = useIsFocused()
-  // const appState = useAppState()
+
+  // temporary function here
+  async function getAlbums() {
+    if (permissionResponse.status !== 'granted') {
+      await requestPermission();
+    }
+    const fetchedAlbums = await MediaLibrary.getAlbumsAsync({
+      includeSmartAlbums: true,
+    });
+    setAlbums(fetchedAlbums);
+  }
+
+
 
   // function to switch camera
   const handleSwitchCamera = ()=>{
     let switchedCam = currentCamera == "back" ? "front" : 'back'
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)
     setcurrentCamera(switchedCam);
   }
 
   // function to take photo
-  const takePhoto = async () => {
+  const clickPicture = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)
     try {
       const data = await camera.current.takePhoto({
         enableAutoRedEyeReduction: true,
         flash: toggleFlash ? "on" : "off"
       });
-      console.log(data);
+      if(data){
+        router.push({
+          pathname: "/image-modal",
+          params: data
+        })
+      }
     } catch (error) {
       console.log("Err", error)
     }
@@ -72,7 +93,7 @@ const index = (props: Props) => {
       <Feather name="circle"
        size={70} color="white" 
        style={styles.shutterBtn}
-       onPss={takePhoto}
+       onPress={()=>clickPicture()}
        />
     </View>
   );
