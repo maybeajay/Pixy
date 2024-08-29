@@ -2,7 +2,6 @@ import { View, Text, StyleSheet } from "react-native";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Camera,
-  CameraCaptureError,
   CameraPosition,
   useCameraDevice,
   useCameraPermission,
@@ -15,7 +14,13 @@ import * as MediaLibrary from 'expo-media-library';
 import { router } from "expo-router";
 const index = () => {
   const [currentCamera, setcurrentCamera] = useState<CameraPosition>("back");
-  const device = useCameraDevice(currentCamera);
+  const device = useCameraDevice(currentCamera, {
+    physicalDevices:[
+      'ultra-wide-angle-camera',
+    'wide-angle-camera',
+    'telephoto-camera'
+    ]
+  });
   const [toggleFlash, settoggleFlash] = useState<boolean>(false);
   const { hasPermission, requestPermission } = useCameraPermission();
   const [permissionResponse, setPermissionResponse] = MediaLibrary.usePermissions();
@@ -47,7 +52,7 @@ const index = () => {
   const clickPicture = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)
     try {
-      const data = await camera.current.takePhoto({
+      const data = await camera.current?.takePhoto({
         enableAutoRedEyeReduction: true,
         flash: toggleFlash ? "on" : "off"
       });
@@ -79,12 +84,12 @@ const index = () => {
        style={styles.siwthcBtn}
        />
        {/* Flash toggle button */}
-    {toggleFlash ? <MaterialIcons name={"flash-off"} 
+    {toggleFlash ? <MaterialIcons name={"flash-on"} 
        size={35} color="white" 
        onPress={()=>settoggleFlash(!toggleFlash)}
        style={[styles.siwthcBtn, {top: 100}]}
        /> :
-      <MaterialIcons name={"flash-on"} 
+      <MaterialIcons name={"flash-off"} 
        size={35} color="white" 
        onPress={()=>settoggleFlash(!toggleFlash)}
        style={[styles.siwthcBtn, {top: 100}]}
