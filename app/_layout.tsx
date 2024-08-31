@@ -28,7 +28,7 @@ function RootLayoutComponent() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
     {firstLogin == "true" ? (
-      <Stack.Screen name="auth" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
     ) : (
       <Stack.Screen name="welcome" options={{ headerShown: false }} />
     )}
