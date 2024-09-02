@@ -3,7 +3,10 @@ import React, { useCallback, useRef, useState } from "react";
 import {
   Camera,
   CameraPosition,
+  CameraProps,
+  Point,
   useCameraDevice,
+  useCameraFormat,
   useCameraPermission,
 } from "react-native-vision-camera";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -11,28 +14,76 @@ import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Entypo from "@expo/vector-icons/Entypo";
 
+
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
+
 import * as Haptics from "expo-haptics";
 import * as MediaLibrary from "expo-media-library";
 import { router, useFocusEffect } from "expo-router";
 import { Audio } from "expo-av";
 import { FontAwesome } from "@expo/vector-icons";
+import { Extrapolation, interpolate, runOnJS } from "react-native-reanimated";
+
+import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated'
+import CameratControls from "@/components/CameratControls";
+import ShutterButton from "@/components/ShutterButton";
+
 
 const index = () => {
   const [currentCamera, setCurrentCamera] = useState<CameraPosition>("back");
   const [toggleFlash, setToggleFlash] = useState<boolean>(false);
-  const [permissionResponse, requestMediaLibraryPermission] =
-    MediaLibrary.usePermissions();
+  const [permissionResponse, requestMediaLibraryPermission] = MediaLibrary.usePermissions();
   const [audioReq, requestAudioPermission] = Audio.usePermissions();
   const [albums, setAlbums] = useState<MediaLibrary.Album[]>([]);
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(false);
   const camera = useRef<Camera>(null);
   const [isvideoPaused, setisVideoPaused] = useState<boolean>(false);
-
+  const [isActionModeEnabled, setisActionModeEnabled] = useState<boolean>(false);
 
   const device = useCameraDevice(currentCamera);
 
+  const zoom = useSharedValue(device?.neutralZoom)
+
   const { hasPermission, requestPermission } = useCameraPermission();
 
+  Reanimated.addWhitelistedNativeProps({
+    zoom: true,
+  })
+  const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera)
+
+
+  const zoomOffset = useSharedValue(0);
+  const zoomGesture = Gesture.Pinch()
+    .onBegin(() => {
+      zoomOffset.value = zoom.value
+    })
+    .onUpdate(event => {
+      const z = zoomOffset.value * event.scale
+      zoom.value = interpolate(
+        z,
+        [1, 10],
+        [device?.minZoom, device?.maxZoom],
+        Extrapolation?.CLAMP,
+      )
+    })
+
+  const animatedProps = useAnimatedProps<CameraProps>(
+    () => ({ zoom: zoom.value }),
+    [zoom]
+  )
+
+  // for focusing by tap events
+
+  const focus = useCallback((point: Point) => {
+    const c = camera.current
+    if (c == null) return
+    c.focus(point)
+  }, [])
+
+  const gesture = Gesture.Tap()
+    .onEnd(({ x, y }) => {
+      runOnJS(focus)({ x, y })
+    })
   useFocusEffect(
     useCallback(() => {
       (async () => {
@@ -49,65 +100,19 @@ const index = () => {
     }, [hasPermission, audioReq, permissionResponse])
   );
 
-  const handleSwitchCamera = () => {
-    let switchedCam = currentCamera === "back" ? "front" : "back";
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-    setCurrentCamera(switchedCam);
-  };
+  // for stable videos
+  
+  const format = useCameraFormat(device, [
+    { videoStabilizationMode: 'cinematic-extended' }
+  ])
 
-  const clickPicture = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-    try {
-      const data = await camera.current?.takePhoto({
-        enableAutoRedEyeReduction: true,
-        flash: toggleFlash ? "on" : "off",
-      });
-      if (data) {
-        router.push({
-          pathname: "/image-modal",
-          params: { type: "image", data: JSON.stringify(data) },
-        });
-      }
-    } catch (error) {
-      console.log("Error", error);
-    }
-  };
+  const supportsVideoStabilization = format?.videoStabilizationModes.includes("cinematic");
 
-  const takeVideo = async () => {
-    setIsVideoPlaying(true);
-    try {
-      await camera.current.startRecording({
-        flash: toggleFlash ? "on" : "off" ,
-        fileType: Platform.OS  == 'android' ? "mp4" : "mov",
-        onRecordingFinished: (video) => {
-          router.push({
-            pathname: "/image-modal",
-            params: { type: "video", data: JSON.stringify(video) },
-          });
-          setIsVideoPlaying(false);
-        },
-        onRecordingError: (error) => {
-          console.error(error);
-          setIsVideoPlaying(false);
-        },
-      });
-    } catch (error) {
-      console.error("Recording Error:", error);
-      setIsVideoPlaying(false);
-    }
-  };
-
-  const handleVideoEnd = async () => {
-    await camera?.current?.stopRecording();
-  };
-
-  const handleVidePause = async ()=>{
-    setisVideoPaused((prev)=>!prev);
-    isvideoPaused ? await camera?.current?.resumeRecording() : await camera?.current?.pauseRecording();
-  }
   return (
+    <GestureHandlerRootView>
+    <GestureDetector gesture={zoomGesture}>
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Camera
+      <ReanimatedCamera
         style={StyleSheet.absoluteFill}
         device={device}
         isActive={true}
@@ -115,72 +120,20 @@ const index = () => {
         video={true}
         audio={true}
         ref={camera}
+        videoStabilizationMode={supportsVideoStabilization ? "cinematic" : "off"}
       />
 
-      <TouchableOpacity 
-      style={styles.switchBtn}>
-      <MaterialCommunityIcons
-        name="camera-front"
-        size={35}
-        color="white"
-        onPress={handleSwitchCamera}
-      />
-      </TouchableOpacity>
-
-      {toggleFlash ? (
-        <MaterialIcons
-          name={"flash-on"}
-          size={35}
-          color="white"
-          onPress={() => setToggleFlash(!toggleFlash)}
-          style={[styles.switchBtn, { top: 100 }]}
-        />
-      ) : (
-        <MaterialIcons
-          name={"flash-off"}
-          size={35}
-          color="white"
-          onPress={() => setToggleFlash(!toggleFlash)}
-          style={[styles.switchBtn, { top: 100 }]}
-        />
-      )}
-
-      {!isVideoPlaying ? (
-        <Feather
-          name={"circle"}
-          size={70}
-          color={"white"}
-          style={styles.shutterBtn}
-          onPress={() => clickPicture()}
-          onLongPress={() => takeVideo()}
-        />
-      ) : (
-        <FontAwesome name="circle"  size={70}
-        color={"red"}
-        style={styles.shutterBtn}
-        onPress={() => handleVideoEnd()} />
-      )}
-
-      {isVideoPlaying && (
-        <View style={styles.videoControls}>
-          <Entypo
-            name="circle-with-cross"
-            size={60}
-            color="white"
-            onPress={() => {
-              camera.current?.cancelRecording();
-              setIsVideoPlaying(false);
-            }}
-          />
-          <MaterialIcons
-            name={isvideoPaused ? "play-circle-filled" : "pause-circle-filled"}
-            size={60}
-            color="white"
-            onPress={() => handleVidePause()}
-          />
-        </View>
-      )}
+      {/* for other camera controls */}
+      <View style={styles.videoControls}>
+      <CameratControls currentCamera={currentCamera} camera={camera} setCurrentCamera={setCurrentCamera} isActionModeEnabled={isActionModeEnabled} setIsVideoPlaying={setIsVideoPlaying} setisActionModeEnabled={setisActionModeEnabled} isvideoPaused={isvideoPaused} isVideoPlaying={isVideoPlaying} setToggleFlash={setToggleFlash} toggleFlash={toggleFlash} setisVideoPaused={setisVideoPaused}/>
+      </View>
+      {/* for shutter button and video recording */}
+     <View style={styles.shutterBtn}>
+     <ShutterButton isVideoPlaying={isVideoPlaying} setIsVideoPlaying={setIsVideoPlaying} camera={camera} toggleFlash={toggleFlash} setToggleFlash={setToggleFlash} flash={toggleFlash}/>
+     </View>
     </View>
+    </GestureDetector>
+    </GestureHandlerRootView>
   );
 };
 
@@ -192,13 +145,12 @@ const styles = StyleSheet.create({
   },
   shutterBtn: {
     position: "absolute",
-    bottom: 50,
-    alignSelf: "center",
+    bottom: 0
   },
   videoControls: {
     flexDirection: "row",
     position: "absolute",
-    bottom: 50,
+    top: 10,
     right: 25,
     gap: 10,
   },
