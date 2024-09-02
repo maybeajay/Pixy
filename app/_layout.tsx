@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useContext, useEffect, useState } from 'react';
 import 'react-native-reanimated';
-
+import 'react-native-gesture-handler';
 SplashScreen.preventAutoHideAsync();
 
 
