@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useContext, useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 SplashScreen.preventAutoHideAsync();
 
 
@@ -24,11 +25,10 @@ function RootLayoutComponent() {
   if (!loaded) {
     return null;
   }
-  console.log(firstLogin == false)
   return (
     <Stack screenOptions={{ headerShown: false }}>
-    {firstLogin == "true" ? (
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+    {firstLogin == false? (
+      <Stack.Screen name="(auth)/FirstScren" options={{ headerShown: false }} />
     ) : (
       <Stack.Screen name="welcome" options={{ headerShown: false }} />
     )}
@@ -38,8 +38,10 @@ function RootLayoutComponent() {
 
 export default function RootLayout() {
   return (
+    <GestureHandlerRootView>
     <AuthProvider>
       <RootLayoutComponent />
     </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
