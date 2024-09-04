@@ -1,4 +1,4 @@
-import { View, Platform, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Platform, StyleSheet, TouchableOpacity, Pressable } from "react-native";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Camera,
@@ -27,6 +27,7 @@ import { Extrapolation, interpolate, runOnJS } from "react-native-reanimated";
 import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated'
 import CameratControls from "@/components/CameratControls";
 import ShutterButton from "@/components/ShutterButton";
+import SwitchCamera  from "@/components/SwitchCanera";
 
 
 const index = () => {
@@ -50,6 +51,10 @@ const index = () => {
     zoom: true,
   })
   const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera)
+  Reanimated.addWhitelistedNativeProps({
+    zoom: true,
+  })
+  
 
 
   const zoomOffset = useSharedValue(0);
@@ -58,11 +63,11 @@ const index = () => {
       zoomOffset.value = zoom.value
     })
     .onUpdate(event => {
-      const z = zoomOffset.value * event.scale
+      const newZoom = zoomOffset.value * event.scale
       zoom.value = interpolate(
-        z,
+        newZoom,
         [1, 10],
-        [device?.minZoom, device?.maxZoom],
+        [device?.minZoom ?? 1, device?.maxZoom ?? 10],
         Extrapolation?.CLAMP,
       )
     })
@@ -107,10 +112,10 @@ const index = () => {
   ])
 
   const supportsVideoStabilization = format?.videoStabilizationModes.includes("cinematic");
-
+  // return null if no device
+  if(device == null) return ;
   return (
-    <GestureHandlerRootView>
-    <GestureDetector gesture={zoomGesture}>
+    <GestureDetector gesture={Gesture.Simultaneous(zoomGesture, gesture)}>
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <ReanimatedCamera
         style={StyleSheet.absoluteFill}
@@ -122,38 +127,42 @@ const index = () => {
         ref={camera}
         videoStabilizationMode={supportsVideoStabilization ? "cinematic" : "off"}
       />
+      
 
       {/* for other camera controls */}
-      <View style={styles.videoControls}>
-      <CameratControls currentCamera={currentCamera} camera={camera} setCurrentCamera={setCurrentCamera} isActionModeEnabled={isActionModeEnabled} setIsVideoPlaying={setIsVideoPlaying} setisActionModeEnabled={setisActionModeEnabled} isvideoPaused={isvideoPaused} isVideoPlaying={isVideoPlaying} setToggleFlash={setToggleFlash} toggleFlash={toggleFlash} setisVideoPaused={setisVideoPaused}/>
+      <View style={styles.controls}>
+      <CameratControls camera={camera} isActionModeEnabled={isActionModeEnabled} setIsVideoPlaying={setIsVideoPlaying} setisActionModeEnabled={setisActionModeEnabled} isvideoPaused={isvideoPaused} isVideoPlaying={isVideoPlaying} setToggleFlash={setToggleFlash} toggleFlash={toggleFlash} setisVideoPaused={setisVideoPaused}/>
       </View>
       {/* for shutter button and video recording */}
      <View style={styles.shutterBtn}>
      <ShutterButton isVideoPlaying={isVideoPlaying} setIsVideoPlaying={setIsVideoPlaying} camera={camera} toggleFlash={toggleFlash} setToggleFlash={setToggleFlash} flash={toggleFlash}/>
      </View>
+
+     {/* for changing camera */}
+     <View style={styles.switchBtn}>
+      <SwitchCamera currentCamera={currentCamera} setCurrentCamera={setCurrentCamera} isVideoPlaying={isVideoPlaying}/>
+     </View>
     </View>
     </GestureDetector>
-    </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
   switchBtn: {
     position: "absolute",
-    top: 50,
-    right: 25,
+    right: 35,
+    bottom: 60,
+    
   },
   shutterBtn: {
     position: "absolute",
     bottom: 0
   },
-  videoControls: {
-    flexDirection: "row",
+  controls:{
     position: "absolute",
-    top: 10,
-    right: 25,
-    gap: 10,
-  },
+    top: 0,
+    right: 0
+  }
 });
 
 export default index;

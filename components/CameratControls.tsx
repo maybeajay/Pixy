@@ -6,17 +6,11 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Entypo from "@expo/vector-icons/Entypo";
 import { FontAwesome } from "@expo/vector-icons";
 import { CameraPosition } from 'react-native-vision-camera';
-
-
-import * as Haptics from "expo-haptics";
-import { useRouter } from 'expo-router';
 import {
     Camera,
   } from "react-native-vision-camera";
 
 type Props = {
-    currentCamera: CameraPosition,
-    setCurrentCamera: Dispatch<SetStateAction<CameraPosition>>,
     isvideoPaused: boolean,
     setisVideoPaused: Dispatch<SetStateAction<boolean>>,
     toggleFlash: boolean,
@@ -28,29 +22,14 @@ type Props = {
     setisActionModeEnabled: Dispatch<SetStateAction<boolean>>
 }
 
-const CameratControls = ({currentCamera, setCurrentCamera, isvideoPaused, setisVideoPaused, toggleFlash, setToggleFlash, camera, setIsVideoPlaying, isVideoPlaying, isActionModeEnabled, setisActionModeEnabled}: Props) => {
-    const handleSwitchCamera = () => {
-        let switchedCam:CameraPosition = currentCamera === "back" ? "front" : "back";
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-        setCurrentCamera(switchedCam);
-      };
+const CameratControls = ({isvideoPaused, setisVideoPaused, toggleFlash, setToggleFlash, camera, setIsVideoPlaying, isVideoPlaying, isActionModeEnabled, setisActionModeEnabled}: Props) => {
       const handleVidePause = async ()=>{
         setisVideoPaused((prev)=>!prev);
         isvideoPaused ? await camera?.current?.resumeRecording() : await camera?.current?.pauseRecording();
       }
       
   return (
-    <View style={{position: "absolute"}}>
-      <TouchableOpacity 
-      style={styles.switchBtn}>
-      <MaterialCommunityIcons
-        name="camera-front"
-        size={35}
-        color="white"
-        onPress={handleSwitchCamera}
-      />
-      </TouchableOpacity>
-
+    <View style={{position: "absolute", top: 5, right: 5}}>
       {toggleFlash ? (
         <MaterialIcons
           name={"flash-on"}
@@ -101,7 +80,7 @@ const CameratControls = ({currentCamera, setCurrentCamera, isvideoPaused, setisV
 const styles = StyleSheet.create({
     switchBtn: {
       position: "absolute",
-      top: 50,
+      top: 20,
       right: 25,
     },
     shutterBtn: {
