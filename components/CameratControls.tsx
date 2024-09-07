@@ -18,18 +18,16 @@ type Props = {
     camera: RefObject<Camera>,
     isVideoPlaying: boolean,
     setIsVideoPlaying: Dispatch<SetStateAction<boolean>>,
-    isActionModeEnabled: boolean,
-    setisActionModeEnabled: Dispatch<SetStateAction<boolean>>
 }
 
-const CameratControls = ({isvideoPaused, setisVideoPaused, toggleFlash, setToggleFlash, camera, setIsVideoPlaying, isVideoPlaying, isActionModeEnabled, setisActionModeEnabled}: Props) => {
+const CameratControls = ({isvideoPaused, setisVideoPaused, toggleFlash, setToggleFlash, camera, setIsVideoPlaying, isVideoPlaying}: Props) => {
       const handleVidePause = async ()=>{
         setisVideoPaused((prev)=>!prev);
         isvideoPaused ? await camera?.current?.resumeRecording() : await camera?.current?.pauseRecording();
       }
       
   return (
-    <View style={{position: "absolute", top: 5, right: 5}}>
+    <View style={{position: "absolute", top: 0, right: 0}}>
       {toggleFlash ? (
         <MaterialIcons
           name={"flash-on"}
@@ -47,11 +45,6 @@ const CameratControls = ({isvideoPaused, setisVideoPaused, toggleFlash, setToggl
           style={[styles.switchBtn, { top: 100 }]}
         />
       )}
-      
-      <MaterialIcons name="video-stable" size={35} color="white" 
-      style={[styles.switchBtn, {top: 150}]}
-      onPress={()=>setisActionModeEnabled((prev)=>!prev)}
-      />     
 
       {isVideoPlaying && (
         <View style={styles.videoControls}>
@@ -80,18 +73,13 @@ const CameratControls = ({isvideoPaused, setisVideoPaused, toggleFlash, setToggl
 const styles = StyleSheet.create({
     switchBtn: {
       position: "absolute",
-      top: 20,
+      top: 5,
       right: 25,
-    },
-    shutterBtn: {
-      position: "absolute",
-      bottom: 50,
-      alignSelf: "center",
     },
     videoControls: {
       flexDirection: "row",
       position: "absolute",
-      bottom: 50,
+      bottom: 80,
       right: 25,
       gap: 10,
     },

@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { AuthContext, AuthProvider } from '@/context/AuthContext'
 import { router, useRootNavigationState } from 'expo-router'
+import 'react-native-reanimated'
 type Props = {}
 
 const index = (props: Props) => {

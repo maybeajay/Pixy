@@ -1,30 +1,29 @@
-import { View, Platform, StyleSheet, TouchableOpacity, Pressable } from "react-native";
+import { View, Platform, StyleSheet, TouchableOpacity, Pressable, Dimensions } from "react-native";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Camera,
   CameraPosition,
   CameraProps,
+  Frame,
   Point,
   useCameraDevice,
   useCameraFormat,
   useCameraPermission,
+  useFrameProcessor,
 } from "react-native-vision-camera";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import Feather from "@expo/vector-icons/Feather";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import Entypo from "@expo/vector-icons/Entypo";
 
+const SCREEN_HEIGHT = Dimensions.get('window').height
 
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
+import { Gesture, GestureDetector, PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler'
 
 import * as Haptics from "expo-haptics";
 import * as MediaLibrary from "expo-media-library";
 import { router, useFocusEffect } from "expo-router";
 import { Audio } from "expo-av";
 import { FontAwesome } from "@expo/vector-icons";
-import { Extrapolation, interpolate, runOnJS } from "react-native-reanimated";
+import { Extrapolate, Extrapolation, interpolate, runOnJS, useAnimatedGestureHandler, useSharedValue } from "react-native-reanimated";
 
-import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated'
+import Reanimated, { useAnimatedProps,  useSharedValue as useReanimatedSharedValue, } from 'react-native-reanimated'
 import CameratControls from "@/components/CameratControls";
 import ShutterButton from "@/components/ShutterButton";
 import SwitchCamera  from "@/components/SwitchCanera";
@@ -43,40 +42,41 @@ const index = () => {
 
   const device = useCameraDevice(currentCamera);
 
-  const zoom = useSharedValue(device?.neutralZoom)
-
   const { hasPermission, requestPermission } = useCameraPermission();
 
-  Reanimated.addWhitelistedNativeProps({
-    zoom: true,
-  })
   const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera)
   Reanimated.addWhitelistedNativeProps({
     zoom: true,
   })
+
   
+  const zoom = useSharedValue(device?.neutralZoom || 1);
+  const zoomOffset = useSharedValue(1);
 
-
-  const zoomOffset = useSharedValue(0);
-  const zoomGesture = Gesture.Pinch()
+  const gesture = Gesture.Pinch()
     .onBegin(() => {
-      zoomOffset.value = zoom.value
+      zoomOffset.value = zoom.value;
     })
     .onUpdate(event => {
-      const newZoom = zoomOffset.value * event.scale
+      const newZoom = zoomOffset.value * event.scale;
       zoom.value = interpolate(
         newZoom,
-        [1, 10],
-        [device?.minZoom ?? 1, device?.maxZoom ?? 10],
-        Extrapolation?.CLAMP,
-      )
-    })
+        [1, 10],  // Adjust this range if needed
+        [device?.minZoom || 1, device?.maxZoom || 10],
+        Extrapolation.CLAMP
+      );
+    });
+
+    // const frameProcessor = useFrameProcessor((frame) => {
+    //   'worklet';
+    //   const labels = labelImage(frame);
+    //   console.log(`you are looking at ${labels}`)
+    // }, []);
 
   const animatedProps = useAnimatedProps<CameraProps>(
     () => ({ zoom: zoom.value }),
     [zoom]
   )
-
   // for focusing by tap events
 
   const focus = useCallback((point: Point) => {
@@ -85,10 +85,6 @@ const index = () => {
     c.focus(point)
   }, [])
 
-  const gesture = Gesture.Tap()
-    .onEnd(({ x, y }) => {
-      runOnJS(focus)({ x, y })
-    })
   useFocusEffect(
     useCallback(() => {
       (async () => {
@@ -115,7 +111,7 @@ const index = () => {
   // return null if no device
   if(device == null) return ;
   return (
-    <GestureDetector gesture={Gesture.Simultaneous(zoomGesture, gesture)}>
+    <GestureDetector gesture={gesture}>
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <ReanimatedCamera
         style={StyleSheet.absoluteFill}
@@ -126,12 +122,13 @@ const index = () => {
         audio={true}
         ref={camera}
         videoStabilizationMode={supportsVideoStabilization ? "cinematic" : "off"}
+        enableZoomGesture={true}
       />
       
 
       {/* for other camera controls */}
       <View style={styles.controls}>
-      <CameratControls camera={camera} isActionModeEnabled={isActionModeEnabled} setIsVideoPlaying={setIsVideoPlaying} setisActionModeEnabled={setisActionModeEnabled} isvideoPaused={isvideoPaused} isVideoPlaying={isVideoPlaying} setToggleFlash={setToggleFlash} toggleFlash={toggleFlash} setisVideoPaused={setisVideoPaused}/>
+      <CameratControls camera={camera}  setIsVideoPlaying={setIsVideoPlaying} isvideoPaused={isvideoPaused} isVideoPlaying={isVideoPlaying} setToggleFlash={setToggleFlash} toggleFlash={toggleFlash} setisVideoPaused={setisVideoPaused}/>
       </View>
       {/* for shutter button and video recording */}
      <View style={styles.shutterBtn}>
