@@ -51,6 +51,10 @@ const ShutterButton = ({
         enableAutoRedEyeReduction: true,
         flash: toggleFlash ? "on" : "off",
       });
+
+      // const data = await camera.current?.takeSnapshot({
+      //   quality: 85
+      // })
       if (data) {
         router.push({
           pathname: "/image-modal",
@@ -74,6 +78,7 @@ const ShutterButton = ({
           style={styles.shutterBtn}
           onPress={() => clickPicture()}
           onLongPress={() => takeVideo()}
+          
         />
       ) : (
         <FontAwesome
