@@ -1,4 +1,4 @@
-import { View, Platform, StyleSheet, TouchableOpacity, Pressable, Dimensions } from "react-native";
+import { View, Platform, StyleSheet, TouchableOpacity, Pressable, Dimensions, Alert } from "react-native";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Camera,
@@ -21,12 +21,16 @@ import * as MediaLibrary from "expo-media-library";
 import { router, useFocusEffect } from "expo-router";
 import { Audio } from "expo-av";
 import { FontAwesome } from "@expo/vector-icons";
-import { Extrapolate, Extrapolation, interpolate, runOnJS, useAnimatedGestureHandler, useSharedValue } from "react-native-reanimated";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Extrapolation, interpolate, useSharedValue } from "react-native-reanimated";
+
 
 import Reanimated, { useAnimatedProps,  useSharedValue as useReanimatedSharedValue, } from 'react-native-reanimated'
 import CameratControls from "@/components/CameratControls";
 import ShutterButton from "@/components/ShutterButton";
 import SwitchCamera  from "@/components/SwitchCanera";
+import { Settings } from "lucide-react-native";
+import ExposureControl from "@/components/ExposureControl";
 
 
 const index = () => {
@@ -39,8 +43,13 @@ const index = () => {
   const camera = useRef<Camera>(null);
   const [isvideoPaused, setisVideoPaused] = useState<boolean>(false);
   const [isActionModeEnabled, setisActionModeEnabled] = useState<boolean>(false);
+  const [isExposureVisible, setisExposureVisible] = useState(false);
+  const [exposure, setExposure] = useState(5);
 
-  const device = useCameraDevice(currentCamera);
+  const device = useCameraDevice(currentCamera, {
+    physicalDevices: ["telephoto-camera"]
+  });
+
 
   const { hasPermission, requestPermission } = useCameraPermission();
 
@@ -53,19 +62,19 @@ const index = () => {
   const zoom = useSharedValue(device?.neutralZoom || 1);
   const zoomOffset = useSharedValue(1);
 
-  const gesture = Gesture.Pinch()
-    .onBegin(() => {
-      zoomOffset.value = zoom.value;
-    })
-    .onUpdate(event => {
-      const newZoom = zoomOffset.value * event.scale;
-      zoom.value = interpolate(
-        newZoom,
-        [1, 10],  // Adjust this range if needed
-        [device?.minZoom || 1, device?.maxZoom || 10],
-        Extrapolation.CLAMP
-      );
-    });
+  const pinchGesture = Gesture.Pinch()
+  .onBegin(() => {
+    zoomOffset.value = zoom.value;
+  })
+  .onUpdate(event => {
+    const newZoom = zoomOffset.value * event.scale;
+    zoom.value = interpolate(
+      newZoom,
+      [1, 5],
+      [device?.minZoom || 1, device?.maxZoom || 5],
+      Extrapolation.CLAMP
+    );
+  }).runOnJS(true)
 
     // const frameProcessor = useFrameProcessor((frame) => {
     //   'worklet';
@@ -101,17 +110,26 @@ const index = () => {
     }, [hasPermission, audioReq, permissionResponse])
   );
 
+
+  const doubleTap = Gesture.Tap()
+  .numberOfTaps(2)
+  .onEnd(() => {
+    setCurrentCamera(currentCamera == "back" ? 'front' : "back");
+  })
+.runOnJS(true)
+
   // for stable videos
   
   const format = useCameraFormat(device, [
-    { videoStabilizationMode: 'cinematic-extended' }
+    { videoResolution: { width: 1920, height: 1080 } }
   ])
 
   const supportsVideoStabilization = format?.videoStabilizationModes.includes("cinematic");
   // return null if no device
   if(device == null) return ;
+  const composed = Gesture.Exclusive(pinchGesture, doubleTap);
   return (
-    <GestureDetector gesture={gesture}>
+    <GestureDetector gesture={composed}>
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <ReanimatedCamera
         style={StyleSheet.absoluteFill}
@@ -122,9 +140,20 @@ const index = () => {
         audio={true}
         ref={camera}
         videoStabilizationMode={supportsVideoStabilization ? "cinematic" : "off"}
-        enableZoomGesture={true}
+        videoHdr={format?.supportsVideoHdr}
+        photoHdr={format?.supportsPhotoHdr}
+        format={format}
+        fps={30}
+        exposure={-2}
+        animatedProps={animatedProps}
       />
-      
+
+      {/* Settings */}
+      <View style={{position: "absolute", top: 40, right: 25}}>
+      <TouchableOpacity onPress={()=>router.push("/settings")}>
+        <Settings size={40} color={"#fff"}/>
+      </TouchableOpacity>
+      </View>
 
       {/* for other camera controls */}
       <View style={styles.controls}>
@@ -139,6 +168,15 @@ const index = () => {
      <View style={styles.switchBtn}>
       <SwitchCamera currentCamera={currentCamera} setCurrentCamera={setCurrentCamera} isVideoPlaying={isVideoPlaying}/>
      </View>
+
+     {/* exposure component */}
+     {
+      isExposureVisible && <ExposureControl setisExposureVisible={setisExposureVisible} exposure={exposure} setExposure={setExposure} maxExposure={device.maxExposure} minExposure={device.minExposure}/>
+     }
+
+     <TouchableOpacity style={{position: 'absolute', bottom: 60, left: 30}} onPress={()=>setisExposureVisible((prev)=>!prev)}>
+     <MaterialIcons name="exposure" size={50} color="#fff" />
+     </TouchableOpacity>
     </View>
     </GestureDetector>
   );
