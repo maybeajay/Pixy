@@ -31,6 +31,7 @@ import ShutterButton from "@/components/ShutterButton";
 import SwitchCamera  from "@/components/SwitchCanera";
 import { Settings } from "lucide-react-native";
 import ExposureControl from "@/components/ExposureControl";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 const index = () => {
@@ -45,6 +46,16 @@ const index = () => {
   const [isActionModeEnabled, setisActionModeEnabled] = useState<boolean>(false);
   const [isExposureVisible, setisExposureVisible] = useState(false);
   const [exposure, setExposure] = useState(5);
+  const [allSettings, setAllSettings] = useState(null);
+
+  useFocusEffect(useCallback(()=>{
+    (async function getAllData(){
+      let res = await AsyncStorage.getItem("allSettings");
+      if(res){
+        setAllSettings(JSON.parse(res));
+      }
+    })()
+  }, []))
 
   const device = useCameraDevice(currentCamera, {
     physicalDevices: ["telephoto-camera"]
@@ -71,7 +82,7 @@ const index = () => {
     zoom.value = interpolate(
       newZoom,
       [1, 5],
-      [device?.minZoom || 1, device?.maxZoom || 5],
+      [device?.minZoom || 1,  5],
       Extrapolation.CLAMP
     );
   }).runOnJS(true)
@@ -114,7 +125,9 @@ const index = () => {
   const doubleTap = Gesture.Tap()
   .numberOfTaps(2)
   .onEnd(() => {
-    setCurrentCamera(currentCamera == "back" ? 'front' : "back");
+    if (allSettings?.doubleTap) {
+      setCurrentCamera(currentCamera === "back" ? 'front' : "back");
+    }
   })
 .runOnJS(true)
 
@@ -127,7 +140,11 @@ const index = () => {
   const supportsVideoStabilization = format?.videoStabilizationModes.includes("cinematic");
   // return null if no device
   if(device == null) return ;
+
+  console.log(allSettings)
   const composed = Gesture.Exclusive(pinchGesture, doubleTap);
+
+
   return (
     <GestureDetector gesture={composed}>
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
