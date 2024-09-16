@@ -33,6 +33,10 @@ import { Settings } from "lucide-react-native";
 import ExposureControl from "@/components/ExposureControl";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+type allSettings = {
+  doubleTap: boolean,
+  notifs: boolean
+}
 
 const index = () => {
   const [currentCamera, setCurrentCamera] = useState<CameraPosition>("back");
@@ -46,7 +50,10 @@ const index = () => {
   const [isActionModeEnabled, setisActionModeEnabled] = useState<boolean>(false);
   const [isExposureVisible, setisExposureVisible] = useState(false);
   const [exposure, setExposure] = useState(5);
-  const [allSettings, setAllSettings] = useState(null);
+  const [allSettings, setAllSettings] = useState<allSettings>({
+    doubleTap: false,
+    notifs: false
+  });
 
   useFocusEffect(useCallback(()=>{
     (async function getAllData(){
@@ -134,17 +141,19 @@ const index = () => {
   // for stable videos
   
   const format = useCameraFormat(device, [
-    { videoResolution: { width: 1920, height: 1080 } }
+    { videoAspectRatio: 16 / 9 },
+  { videoResolution: { width: 3048, height: 2160 } },
+  { fps: 60 }
   ])
-
+  
   const supportsVideoStabilization = format?.videoStabilizationModes.includes("cinematic");
   // return null if no device
   if(device == null) return ;
-
+  
   console.log(allSettings)
   const composed = Gesture.Exclusive(pinchGesture, doubleTap);
 
-
+  
   return (
     <GestureDetector gesture={composed}>
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -160,11 +169,9 @@ const index = () => {
         videoHdr={format?.supportsVideoHdr}
         photoHdr={format?.supportsPhotoHdr}
         format={format}
-        fps={30}
         exposure={-2}
         animatedProps={animatedProps}
       />
-
       {/* Settings */}
       <View style={{position: "absolute", top: 40, right: 25}}>
       <TouchableOpacity onPress={()=>router.push("/settings")}>
