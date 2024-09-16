@@ -1,16 +1,20 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Pressable } from 'react-native';
 import { MoveLeft } from 'lucide-react-native';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeInLeft, FadeInRight, FadeOutRight } from 'react-native-reanimated';
+import CustomSwitch from '@/components/CustomSwitch';
 type Props = {}
 
 const Index = (props: Props) => {
   const [allSettings, setAllSettings] = useState({
     doubleTap: false,
     notifications: false,
+    photHdr: false,
+    mirrorCamera: false,
+    vhdr: false,
+    fps: 30
   });
 
   useFocusEffect(
@@ -24,6 +28,26 @@ const Index = (props: Props) => {
     }, [])
   );
 
+  const fpsTogglePosition = useSharedValue(0);
+
+  const fpsAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: withTiming(fpsTogglePosition.value, { duration: 300 }) }],
+    };
+  });
+
+  const toggleFps = async () => {
+    const newFps = allSettings.fps === 30 ? 60 : 30;
+    setAllSettings((prev) => ({ ...prev, fps: newFps }));
+
+    // Update Shared Value for Animation
+    fpsTogglePosition.value = newFps === 60 ? 30 : 0;
+
+    // Save to AsyncStorage
+    await AsyncStorage.setItem("allSettings", JSON.stringify({ ...allSettings, fps: newFps }));
+  };
+
+
   const toggleSwitch = async (label: string, value: boolean) => {
     const updatedSettings = { ...allSettings };
     switch (label) {
@@ -33,6 +57,14 @@ const Index = (props: Props) => {
       case "notifs":
         updatedSettings.notifications = value;
         break;
+      case "phototHdr":
+        updatedSettings.photHdr = value;
+        break;
+      case "mirrorCamera":
+        updatedSettings.mirrorCamera = value;
+        break;
+      case "vhdr":
+        updatedSettings.vhdr = value
       default:
         break;
     }
@@ -52,7 +84,7 @@ const Index = (props: Props) => {
   });
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={styles.container} entering={FadeInLeft} exiting={FadeOutRight}>
       {/* Back Button */}
       <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
         <MoveLeft size={30} color={"#2e2e2e"} />
@@ -60,7 +92,7 @@ const Index = (props: Props) => {
 
       {/* Multiple Option Example */}
       <View style={styles.content}>
-        <Text style={styles.label}>Settings</Text>
+        <Text style={styles.label}>Camera Settings</Text>
 
         <View style={styles.optionContainer}>
           <View style={styles.textCont}>
@@ -88,10 +120,65 @@ const Index = (props: Props) => {
           />
         </View>
 
+        <View style={styles.optionContainer}>
+          <View style={styles.textCont}>
+            <Text style={styles.switchLabel}>Photo HDR</Text>
+            <Text>enables photo HDR for supported device</Text>
+          </View>
+          <Switch
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={allSettings.photHdr ? "#f5dd4b" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={(value) => toggleSwitch("phototHdr", value)}
+            value={allSettings.photHdr}
+          />
+        </View>
+
+        <View style={styles.optionContainer}>
+          <View style={styles.textCont}>
+            <Text style={styles.switchLabel}>Mirror Front Camera</Text>
+          </View>
+          <Switch
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={allSettings.mirrorCamera ? "#f5dd4b" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={(value) => toggleSwitch("mirrorCamera", value)}
+            value={allSettings.mirrorCamera}
+          />
+        </View>
+
         {/* Separator */}
         <View style={styles.separator} />
+
+
+        {/* video settings */}
+        <Text style={styles.label}>Video Settings</Text>
+        <View style={styles.optionContainer}>
+          <View style={styles.textCont}>
+            <Text style={styles.switchLabel}>use HDR</Text>
+          </View>
+          <Switch
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={allSettings.vhdr ? "#f5dd4b" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={(value) => toggleSwitch("vhdr", value)}
+            value={allSettings.vhdr}
+          />
+        </View>
+
+        {/* fps */}
+        <View style={styles.optionContainer}>
+          <View style={styles.textCont}>
+            <Text style={styles.switchLabel}>Video Frame Rate</Text>
+          </View>
+          <Pressable onPress={toggleFps} style={styles.fpsToggle}>
+            <Animated.View style={[styles.fpsToggleIndicator, fpsAnimatedStyle]}>
+              <Text style={styles.fpsToggleText}>{allSettings.fps} fps</Text>
+            </Animated.View>
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -131,7 +218,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 10,
+    padding: 5,
     backgroundColor: "#fff",
     borderRadius: 10,
     shadowColor: "#000",
@@ -145,14 +232,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
+  fpsToggle: {
+    width: 100,
+    height: 40,
+    borderRadius: 13,
+    backgroundColor: "#ddd",
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  fpsToggleIndicator: {
+    width: '50%',
+    height: '100%',
+    backgroundColor: "#81b0ff",
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  fpsToggleText: {
+    color: '#fff',
+  },
+  textCont: {
+    flexDirection: "column"
+  },
   separator: {
     height: 1,
     backgroundColor: "#ccc",
     marginVertical: 20,
-  },
-  textCont: {
-    flexDirection: "column"
-  }
+  },  
 });
 
 export default Index;
